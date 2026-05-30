@@ -1,0 +1,56 @@
+# ==============================================================================
+# Jerin's Men's Wear - Complete Multi-Container Orchestration
+# docker-compose.yml
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # Containerized Python Flask Backend Service
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jerins_app_server
+    restart: always
+    environment:
+      - FLASK_ENV=production
+      # Secret key fallback. Production deployments should override via system environmental settings.
+      - FLASK_SECRET_KEY=94c8e79b2915fa8b3df92d4cae5d5fe6b4129b0a1d3fbc01ea5df49cb0a8d9fc
+      # Database connection configurations for AWS RDS MySQL.
+      # If left empty/undefined, the adapter automatically defaults to locally persistent SQLite.
+      - DB_HOST=${DB_HOST:-}
+      - DB_USER=${DB_USER:-}
+      - DB_PASS=${DB_PASS:-}
+      - DB_NAME=${DB_NAME:-}
+      - PORT=5000
+    volumes:
+      # Persistent host-volume bind to secure SQLite database storage in grading environments
+      - ./data:/app/data
+    expose:
+      - "5000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - NET_BIND_SERVICE
+
+  # Hardened Nginx Reverse Proxy Edge Service
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: jerins_nginx_edge
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      # Mount Nginx reverse proxy configuration in read-only format
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      web:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
