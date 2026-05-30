@@ -45,6 +45,8 @@ WORKDIR /app
 
 # Transfer application components with correct owner privileges
 COPY --chown=appuser:appgroup app.py schema.sql ./
+# Copy AWS SSL certificate bundle optionally if present in workspace (without breaking local builds if missing)
+COPY --chown=appuser:appgroup global-bundle.pe[m] ./
 
 # Setup persistent volume directory for SQLite fallback database
 RUN mkdir -p /app/data && chown -R appuser:appgroup /app

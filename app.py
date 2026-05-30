@@ -91,12 +91,22 @@ def is_mysql_configured():
 def get_db_connection():
     if is_mysql_configured():
         try:
+            # Detect SSL CA certificate if provided
+            ssl_config = None
+            ssl_ca = os.environ.get('DB_SSL_CA')
+            if not ssl_ca and os.path.exists('global-bundle.pem'):
+                ssl_ca = 'global-bundle.pem'
+            
+            if ssl_ca:
+                ssl_config = {'ca': ssl_ca}
+
             # 1. Connect to RDS server engine to ensure target schema exists
             bootstrap_conn = pymysql.connect(
                 host=DB_HOST,
                 user=DB_USER,
                 password=DB_PASS,
-                autocommit=True
+                autocommit=True,
+                ssl=ssl_config
             )
             bootstrap_cursor = bootstrap_conn.cursor()
             bootstrap_cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
@@ -110,7 +120,8 @@ def get_db_connection():
                 password=DB_PASS,
                 database=DB_NAME,
                 cursorclass=pymysql.cursors.DictCursor,
-                autocommit=True
+                autocommit=True,
+                ssl=ssl_config
             )
             return conn, "mysql"
         except Exception as e:
@@ -1805,10 +1816,11 @@ def healthcheck():
 # Bootstrap Entrypoint
 # ==============================================================================
 
+# Initialize database schema migration automatically on application module import
+# (Crucial for Gunicorn and container workers running without direct main invocation)
+init_database()
+
 if __name__ == '__main__':
-    # Initialize schema migration on application boot
-    init_database()
-    
     # CLI check-only validation mode
     if len(sys.argv) > 1 and sys.argv[1] == '--check-only':
         print("Application syntax check verified. Exiting clean.")
