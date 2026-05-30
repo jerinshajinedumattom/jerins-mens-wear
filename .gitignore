@@ -1,0 +1,22 @@
+# ==============================================================================
+# Jerin's Men's Wear - Git Ignore File (.gitignore)
+# ==============================================================================
+
+# Environment secret configurations (Contains DB passwords & Flask keys)
+.env
+
+# Local persistent databases
+local_jerins.db
+data/
+*.db
+*.db-journal
+
+# Compiled bytecode and cache folders
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+env/
